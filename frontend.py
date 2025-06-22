@@ -8,20 +8,25 @@ model = tf.keras.models.load_model("tensorflow_mnist.h5")
 
 st.set_page_config(page_title="MNIST Classifier", layout="centered")
 st.title("🖊️ Clasificador de Dígitos Manuscritos MNIST")
-st.write("Dibujá o subí una imagen de un dígito manuscrito (1-9, 28x28 píxeles, escala de grises).")
+st.write("Elegí un número entre 1 y 9 para ver ejemplos reales del dataset MNIST y la predicción del modelo.")
 
-uploaded_file = st.file_uploader("Elegí una imagen PNG o JPG (28x28, escala de grises)", type=["png", "jpg", "jpeg"])
-if uploaded_file is not None:
-    img = Image.open(uploaded_file).convert("L").resize((28, 28))
-    img_arr = np.array(img).astype("float32") / 255.0
-    img_arr = img_arr[None, ..., None]  # (1, 28, 28, 1)
+# Menú desplegable para elegir el dígito
+digit = st.selectbox("Seleccioná un dígito (1-9):", list(range(1, 10)))
+
+# Cargar el dataset MNIST de prueba
+(_, _), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+x_test = x_test.astype('float32') / 255.0
+x_test = x_test[..., None]  # (N, 28, 28, 1)
+
+# Seleccionar una imagen real del dígito elegido
+indices = np.where(y_test == digit)[0]
+if len(indices) > 0:
+    idx = indices[0]
+    img = x_test[idx]
+    img_arr = img[None, ...]  # (1, 28, 28, 1)
     pred = model.predict(img_arr)
     pred_label = np.argmax(pred, axis=1)[0]
-    if 1 <= pred_label <= 9:
-        st.image(img, caption=f"Predicción: {pred_label}", width=128)
-        st.write(f"El modelo predice: **{pred_label}**")
-    else:
-        st.image(img, caption="Predicción fuera de rango (solo 1-9)", width=128)
-        st.warning("El modelo solo acepta dígitos del 1 al 9. Intenta con otra imagen.")
+    st.image(img.squeeze(), caption=f"Predicción: {pred_label}", width=128, channels="GRAY")
+    st.write(f"El modelo predice: **{pred_label}**")
 else:
-    st.info("Subí una imagen de un dígito manuscrito entre 1 y 9.")
+    st.warning("No se encontró una imagen para ese dígito en el dataset.")
